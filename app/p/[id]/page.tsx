@@ -6,19 +6,17 @@ import { notFound } from "next/navigation";
 export default async function PastePage({
   params
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
+  const { id } = params;
   const key = `paste:${id}`;
 
-  // Increment views first to be atomic
-  const newViews = await kv.hincrby(key, "views", 1);
   const paste: any = await kv.hgetall(key);
-
   if (!paste || !paste.content) {
-    if (newViews === 1) await kv.del(key);
-    return notFound();
+    notFound();
   }
+
+  const newViews = await kv.hincrby(key, "views", 1);
 
   const createdAt = parseInt(paste.createdAt, 10);
   const ttlSeconds = paste.ttlSeconds ? parseInt(paste.ttlSeconds, 10) : null;
@@ -26,15 +24,14 @@ export default async function PastePage({
 
   const now = await nowMs();
 
-  // Check TTL
   if (ttlSeconds && now > createdAt + ttlSeconds * 1000) {
     await kv.del(key);
-    return notFound();
+    notFound();
   }
 
-  // Check View Limit
   if (maxViews && newViews > maxViews) {
-    return notFound();
+    await kv.del(key);
+    notFound();
   }
 
   return (
