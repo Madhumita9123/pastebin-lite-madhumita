@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pastebin-Lite
 
-## Getting Started
+A minimal "Pastebin"-like application where users can create text pastes with optional TTL (Time-to-Live) and view count constraints.
 
-First, run the development server:
+## Persistence Layer
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+This application uses **@vercel/kv** (Redis) as its persistence layer. 
+- It tracks paste content, creation time, TTL, and view counts.
+- It uses Redis hashes (`HSET`, `HGETALL`) and atomic increments (`HINCRBY`) to ensure consistency and enforce view limits even under concurrent load.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prerequisites
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js (v18 or higher)
+- A Vercel KV database (or a local Redis instance)
 
-## Learn More
+### Installation
 
-To learn more about Next.js, take a look at the following resources:
+1. Clone the repository.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables in a `.env.local` file:
+   ```env
+   KV_URL=your_kv_url
+   KV_REST_API_URL=your_kv_rest_api_url
+   KV_REST_API_TOKEN=your_kv_rest_api_token
+   KV_REST_API_READ_ONLY_TOKEN=your_kv_rest_api_read_only_token
+   TEST_MODE=1 (optional, for deterministic testing)
+   ```
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Design Decisions
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Atomic counting**: To prevent over-serving pastes with view limits, the application increments the view count atomically using Redis before serving the content.
+- **Next.js 16 (App Router)**: The application leverages the latest Next.js features, including server components for viewing pastes and API routes for management.
+- **Deterministic Time**: Supports the `x-test-now-ms` header when `TEST_MODE=1` to allow for precise automated testing of expiry logic.
