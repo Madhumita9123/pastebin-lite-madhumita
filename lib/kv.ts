@@ -30,7 +30,16 @@ const mockKv = {
     }
 };
 
-const isKvConfigured = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
+const isKvConfigured = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+
+if (process.env.NODE_ENV === "production" || process.env.DEBUG_KV) {
+    if (isKvConfigured) {
+        console.log("✅ Using Vercel KV for persistence.");
+    } else {
+        console.warn("⚠️ Warning: KV environment variables are missing. Falling back to Mock In-Memory KV (non-persistent).");
+    }
+}
+
 const kv = (isKvConfigured ? vercelKv : mockKv) as typeof vercelKv;
 
 export default kv;
